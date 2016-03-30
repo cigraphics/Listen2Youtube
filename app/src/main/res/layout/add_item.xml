@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+
+    android:layout_marginTop="10dp">
+
+    <com.balysv.materialripple.MaterialRippleLayout
+        android:id="@+id/ripple"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="12dp"
+        android:layout_marginStart="12dp"
+        app:mrl_rippleColor="#a4a4a4"
+        app:mrl_rippleAlpha="0.2"
+        app:mrl_rippleOverlay="true"
+        app:mrl_rippleDimension="5dp"
+        >
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingRight="90dp">
+
+            <android.support.v7.widget.AppCompatImageView
+                android:id="@+id/ivChannelIcon"
+                android:layout_width="54dp"
+                android:layout_height="54dp"
+                android:background="@drawable/add_playlist"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="6dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <android.support.v7.widget.AppCompatTextView
+                    android:id="@+id/tvTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="marquee"
+                    android:maxLines="1"
+                    android:text="Add new play list"
+                    android:textSize="16sp"
+                    android:layout_marginLeft="16dp"
+                    android:textColor="?android:textColorPrimary" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.balysv.materialripple.MaterialRippleLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:background="#484d4d4d"/>
+</LinearLayout>
+

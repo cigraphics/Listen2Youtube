@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/search_item"
+            android:icon="@drawable/ic_action_search"
+            android:title="Search online"
+            android:checked="true"/>
+        <item
+            android:id="@+id/download_list"
+            android:icon="@drawable/ic_video_library"
+            android:title="Downloaded" />
+        <item
+            android:id="@+id/playlist"
+            android:icon="@drawable/ic_playlist"
+            android:title="Playlists" />
+
+    </group>
+
+    <item android:title="More">
+        <menu>
+            <item
+                android:id="@+id/settings"
+                android:icon="@drawable/ic_action_settings"
+                android:title="Settings"
+                />
+            <item
+                android:id="@+id/about"
+                android:icon="@drawable/ic_about"
+                android:title="About" />
+        </menu>
+    </item>
+
+</menu>

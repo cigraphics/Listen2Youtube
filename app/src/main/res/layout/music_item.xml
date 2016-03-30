@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_marginLeft="12dp"
+    android:layout_marginStart="12dp"
+    android:layout_marginTop="10dp">
+
+    <com.balysv.materialripple.MaterialRippleLayout
+        android:id="@+id/ripple"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:mrl_rippleColor="#ffffff"
+        app:mrl_rippleAlpha="0.2"
+        app:mrl_rippleOverlay="true"
+        app:mrl_rippleDimension="5dp"
+        >
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/item_background_grey"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingRight="90dp">
+
+            <android.support.v7.widget.AppCompatImageView
+                android:id="@+id/ivChannelIcon"
+                android:layout_width="54dp"
+                android:layout_height="54dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="6dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <android.support.v7.widget.AppCompatTextView
+                    android:id="@+id/tvTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="marquee"
+                    android:maxLines="1"
+                    android:text=""
+                    android:textSize="16sp"
+                    android:textColor="#ffffff" />
+
+                <android.support.v7.widget.AppCompatTextView
+                    android:id="@+id/tvDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="marquee"
+                    android:maxLines="1"
+                    android:text=""
+                    android:textColor="#ffffff"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+
+
+        </LinearLayout>
+    </com.balysv.materialripple.MaterialRippleLayout>
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|end"
+        android:gravity="center_vertical">
+        <com.balysv.materialripple.MaterialRippleLayout
+            android:id="@+id/download_ripple"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="10dp"
+            android:layout_marginEnd="10dp"
+            android:padding="6dp"
+            app:mrl_rippleColor="@android:color/black"
+            app:mrl_rippleAlpha="0.06"
+            app:mrl_rippleDimension="3dp"
+            app:mrl_rippleOverlay="true">
+            <View
+                android:id="@+id/icon1"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:clickable="true"
+                android:background="@drawable/ic_action_download"/>
+        </com.balysv.materialripple.MaterialRippleLayout>
+        <android.support.v7.widget.AppCompatImageView
+            android:id="@+id/ivPlaying"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginRight="16dp"
+            android:background="@drawable/ic_headset" />
+    </LinearLayout>
+</FrameLayout>
+
