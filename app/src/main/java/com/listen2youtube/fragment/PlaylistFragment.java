@@ -29,8 +29,8 @@ import java.util.List;
 public class PlaylistFragment extends LocalFileFragment {
     private static final String TAG = "PlaylistFragment";
 
-    int mDisplayingPlaylistId = -1;
-    int mPlayingPlaylist = -1;
+    public int mDisplayingPlaylistId = -1;
+    public int mPlayingPlaylist = -1;
 
     PlaylistDataSet dataSet;
 
@@ -52,11 +52,11 @@ public class PlaylistFragment extends LocalFileFragment {
 
     @Override
     public void onItemClick(View v) {
-        if (v.getTag() == null){
+        if (v.getTag() == null) {
             AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
             builder.setTitle("Title");
             final AppCompatEditText input = new AppCompatEditText(getContext());
-            input.setInputType(InputType.TYPE_TEXT_VARIATION_PERSON_NAME);
+            input.setInputType(InputType.TYPE_TEXT_VARIATION_PERSON_NAME | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
             input.setMaxLines(1);
             input.setHint("Playlist name");
             builder.setView(input);
@@ -89,12 +89,42 @@ public class PlaylistFragment extends LocalFileFragment {
                 }
             });
             builder.show();
+        } else {
+            int position = (int) v.getTag();
+            if (mDisplayingPlaylistId == -1) {
+                mDisplayingPlaylistId = position;
+                getActivity().setTitle("Playlist: " + dataSet.getItem(position).title);
+                onChanged();
+            }
         }
     }
 
     @Override
     public void onIcon1Click(View v) {
-
+        final int pos = (int) v.getTag();
+        if (mDisplayingPlaylistId == -1) {
+            final PlaylistItem playlistItem = dataSet.getItem(pos);
+            new AlertDialog.Builder(getActivity())
+                    .setIcon(R.mipmap.ic_launcher)
+                    .setTitle("Delete playlist")
+                    .setMessage("Are you sure delete playlist:" + playlistItem.title + " ?")
+                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            PlayListHelper.removePlaylist(getContext().getContentResolver(), playlistItem.id);
+                            dataSet.dataList.remove(pos);
+                            onChanged();
+                        }
+                    })
+                    .setNegativeButton("No", null)
+                    .show();
+        } else {
+            PlayListHelper.removeFromPlaylist(getContext().getContentResolver(),
+                    dataSet.getItem(mDisplayingPlaylistId).localFileItems.get(pos).id,
+                    dataSet.getItem(mDisplayingPlaylistId).id);
+            dataSet.getItem(mDisplayingPlaylistId).localFileItems.remove(pos);
+            onChanged();
+        }
     }
 
     class PlaylistAdapter extends BaseAdapter<PlaylistItem> {
@@ -137,9 +167,9 @@ public class PlaylistFragment extends LocalFileFragment {
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
             if (getItemViewType(position) != TYPE_ADD_PLAYLIST) {
-                if (mDisplayingPlaylistId == -1)
+                if (mDisplayingPlaylistId == -1) {
                     holder.bindData(dataSet.getItem(position - 1), position - 1);
-                else
+                } else
                     holder.bindData(dataSet.getItem(mDisplayingPlaylistId), position);
             }
 
@@ -176,13 +206,19 @@ public class PlaylistFragment extends LocalFileFragment {
         }
 
         @Override
-        public String getTitle() {
-            return title;
+        public String getTitle(int position) {
+            if (mDisplayingPlaylistId == -1)
+                return title;
+            else
+                return localFileItems.get(position).getTitle(0);
         }
 
         @Override
-        public String getDescription() {
-            return localFileItems.size() > 0 ? localFileItems.size() + " songs" : "0 song.";
+        public String getDescription(int position) {
+            if (mDisplayingPlaylistId == -1)
+                return localFileItems.size() > 0 ? localFileItems.size() + " songs" : "0 song.";
+            else
+                return localFileItems.get(position).getDescription(0);
         }
 
         @Override

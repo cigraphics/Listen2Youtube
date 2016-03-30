@@ -16,7 +16,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.listen2youtube.Playlist;
 import com.listen2youtube.R;
 import com.listen2youtube.Utils;
 import com.listen2youtube.fragment.LocalFileFragment;
@@ -212,6 +211,10 @@ public class MainActivity extends AppCompatActivity
             toolbar.setTitle("All local file");
             localFileFragment.dataSet.doFilter(null);
             localFileFragment.onChanged();
+        } else if (currentFragment.equals(LOCAL_PLAYLIST) && !toolbar.getTitle().equals("Playlist")) {
+            toolbar.setTitle("Playlist");
+            playlistFragment.mDisplayingPlaylistId = -1;
+            playlistFragment.onChanged();
         } else
             super.onBackPressed();
     }

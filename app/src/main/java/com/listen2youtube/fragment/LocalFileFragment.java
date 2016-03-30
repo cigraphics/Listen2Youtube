@@ -68,7 +68,7 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
 
     @Override
     public void onIcon1Click(View v) {
-        final LocalFileItem musicItem = (LocalFileItem) v.getTag();
+        final LocalFileItem musicItem = dataSet.getItem((int) v.getTag());
         PopupMenu popupMenu = new PopupMenu(getContext(), v);
         popupMenu.getMenu().add(0, 0, 0, "Create new playlist");
         final List<Playlist> playlist = PlayListHelper.fetchAllPlaylist(getContext().getContentResolver());
@@ -84,7 +84,7 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
                         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                         builder.setTitle("Title");
                         final AppCompatEditText input = new AppCompatEditText(getContext());
-                        input.setInputType(InputType.TYPE_TEXT_VARIATION_PERSON_NAME);
+                        input.setInputType(InputType.TYPE_TEXT_VARIATION_PERSON_NAME | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
                         input.setMaxLines(1);
                         input.setHint("Playlist name");
                         builder.setView(input);
@@ -98,7 +98,7 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
                                     Toast.makeText(getContext(), "Create " + playlistName + " playlist success", Toast.LENGTH_SHORT).show();
                                     PlayListHelper.insertSongToPlaylist(contentResolver, musicItem, newPlaylistUri);
                                     Toast.makeText(getContext(),
-                                            "Insert " + musicItem.getTitle() + " to " + playlistName + " success",
+                                            "Insert " + musicItem.getTitle(0) + " to " + playlistName + " success",
                                             Toast.LENGTH_SHORT).show();
                                 } else
                                     Toast.makeText(getContext(), "Create " + playlistName + " playlist have an error.", Toast.LENGTH_SHORT).show();
@@ -115,8 +115,9 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
                     default:
                         Playlist mPlaylist = playlist.get(item.getItemId() - 1);
                         PlayListHelper.insertSongToPlaylist(contentResolver, musicItem, mPlaylist.getId());
+                        Log.e(TAG, "onMenuItemClick - line 118: " + mPlaylist.getId());
                         Toast.makeText(getContext(),
-                                "Insert " + musicItem.getTitle() + " to " + mPlaylist.getTitle() + " success",
+                                "Insert " + musicItem.getTitle(0) + " to " + mPlaylist.getTitle() + " success",
                                 Toast.LENGTH_SHORT).show();
                         break;
                 }
@@ -260,7 +261,7 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
                 haveFiltered = true;
                 filterStr = filterStr.toLowerCase();
                 for (int i = 0; i < dataList.size(); i++) {
-                    if (dataList.get(i).getTitle().toLowerCase().contains(filterStr))
+                    if (dataList.get(i).getTitle(0).toLowerCase().contains(filterStr))
                         mItemFiltered.add(i);
                 }
             }
@@ -354,12 +355,12 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
         }
 
         @Override
-        public String getTitle() {
+        public String getTitle(int position) {
             return title;
         }
 
         @Override
-        public String getDescription() {
+        public String getDescription(int position) {
             int minutes = (int) (duration / 60000);
             String minuteStr = minutes < 10 ? "0" + minutes : "" + minutes;
             int seconds = (int) (duration - minutes * 60000) / 1000;

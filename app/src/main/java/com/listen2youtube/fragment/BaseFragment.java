@@ -18,6 +18,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.balysv.materialripple.MaterialRippleLayout;
 import com.listen2youtube.R;
 
 import java.util.ArrayList;
@@ -158,7 +159,7 @@ public abstract class BaseFragment extends Fragment {
         AppCompatImageView thumbnail;
         AppCompatTextView title, description;
         View icon1, icon2;
-        View ripple;
+        MaterialRippleLayout ripple;
 
 
         public ViewHolder(View itemView, boolean isDefaultItem) {
@@ -169,7 +170,7 @@ public abstract class BaseFragment extends Fragment {
                 description = (AppCompatTextView) itemView.findViewById(R.id.tvDescription);
                 icon1 = itemView.findViewById(R.id.icon1);
                 icon2 = itemView.findViewById(R.id.ivPlaying);
-                ripple = itemView.findViewById(R.id.ripple);
+                ripple = (MaterialRippleLayout) itemView.findViewById(R.id.ripple);
 
                 ripple.setOnClickListener(onItemClick);
                 icon1.setOnClickListener(onIcon1Click);
@@ -177,13 +178,13 @@ public abstract class BaseFragment extends Fragment {
         }
 
         public void bindData(BaseDataItem data, int position){
-            title.setText(data.getTitle());
-            description.setText(data.getDescription());
+            title.setText(data.getTitle(position));
+            description.setText(data.getDescription(position));
 
             icon1.setBackgroundResource(data.getDrawableResIcon1());
-            icon1.setTag(data);
+            icon1.setTag(position);
 
-            ripple.setTag(position);
+            ripple.getChildView().setTag(position);
 
             if (data.shouldShowHeadphoneIcon(position))
                 icon2.setVisibility(View.VISIBLE);
@@ -223,11 +224,11 @@ public abstract class BaseFragment extends Fragment {
 
     public abstract class BaseDataItem {
 
-        public String getTitle(){
+        public String getTitle(int position) {
             return "";
         }
 
-        public String getDescription(){
+        public String getDescription(int position) {
             return "";
         }
 

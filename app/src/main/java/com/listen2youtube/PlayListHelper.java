@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import com.listen2youtube.fragment.LocalFileFragment;
 import com.listen2youtube.fragment.PlaylistFragment;
@@ -86,19 +87,25 @@ public class PlayListHelper {
             final int base = cur.getInt(0);
             cur.close();
             ContentValues values = new ContentValues();
-            values.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, base + 1);
+            values.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, base + item.id);
             values.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, item.id);
             values.put(MediaStore.Audio.Playlists.Members.ARTIST, item.artist);
             values.put(MediaStore.Audio.Playlists.Members.TITLE, item.title);
             values.put(MediaStore.Audio.Playlists.Members.ALBUM, item.album);
             values.put(MediaStore.Audio.Playlists.Members.DURATION, item.duration);
-            resolver.insert(uri, values);
+            Log.e(TAG, "insertSongToPlaylist - line 95: " + resolver.bulkInsert(uri, new ContentValues[]{values}));
+            resolver.notifyChange(Uri.parse("content://media"), null);
         }
     }
 
-    public static void removeFromPlaylist(ContentResolver resolver, int audioId, int playlistId) {
+    public static void removeFromPlaylist(ContentResolver resolver, long audioId, long playlistId) {
         Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", playlistId);
         resolver.delete(uri, MediaStore.Audio.Playlists.Members.AUDIO_ID + " = " + audioId, null);
+    }
+
+    public static void removePlaylist(ContentResolver resolver, long playlistId) {
+        Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
+        resolver.delete(uri, MediaStore.Audio.Playlists._ID + " = " + playlistId, null);
     }
 
     public static List<LocalFileFragment.LocalFileItem> fetchAllSongInPlaylist(LocalFileFragment localFileFragment, ContentResolver resolver, long playlistId) {

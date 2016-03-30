@@ -85,8 +85,9 @@ public class SearchOnlineFragment extends BaseFragment implements BaseFragment.O
 
     @Override
     public void onIcon1Click(View v) {
-        final SearchOnlineItem data = (SearchOnlineItem) v.getTag();
-        showToast("Start download " + data.getTitle());
+
+        final SearchOnlineItem data = dataSet.getItem((int) v.getTag());
+        showToast("Start download " + data.getTitle(0));
         Utils.getLinkAsync(data.id, new Utils.OnCompleteListener() {
             @Override
             public void onComplete(Object response) {
@@ -101,9 +102,9 @@ public class SearchOnlineFragment extends BaseFragment implements BaseFragment.O
                 request.allowScanningByMediaScanner();
                 if (Settings.isOnlyWifi())
                     request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI);
-                request.setDescription(data.getDescription())
+                request.setDescription(data.getDescription(0))
                         .setDestinationInExternalPublicDir(Environment.DIRECTORY_MUSIC,
-                                Utils.getValidFileName(data.getTitle()) + ".mp3")
+                                Utils.getValidFileName(data.getTitle(0)) + ".mp3")
                         .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                         .setVisibleInDownloadsUi(true)
                         .setMimeType("audio/mp3");
@@ -274,12 +275,12 @@ public class SearchOnlineFragment extends BaseFragment implements BaseFragment.O
         }
 
         @Override
-        public String getTitle() {
+        public String getTitle(int position) {
             return title;
         }
 
         @Override
-        public String getDescription() {
+        public String getDescription(int position) {
             return channelTitle;
         }
 
