@@ -1,9 +1,12 @@
 package com.listen2youtube.activity;
 
 import android.app.SearchManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.GravityCompat;
@@ -15,17 +18,20 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.listen2youtube.R;
 import com.listen2youtube.Utils;
+import com.listen2youtube.fragment.BaseFragment;
 import com.listen2youtube.fragment.LocalFileFragment;
 import com.listen2youtube.fragment.PlaylistFragment;
 import com.listen2youtube.fragment.SearchOnlineFragment;
+import com.listen2youtube.service.MusicService;
 
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, SearchView.OnQueryTextListener {
+        implements NavigationView.OnNavigationItemSelectedListener, SearchView.OnQueryTextListener, ServiceConnection, BaseFragment.OnPlaySong {
     private static final String TAG = "MainActivity";
     private static final String SEARCH_ONLINE = "SEARCH_ONLINE", LOCAL_FILE = "LOCAL_FILE", LOCAL_PLAYLIST = "LOCAL_PLAYLIST";
 
@@ -43,6 +49,8 @@ public class MainActivity extends AppCompatActivity
     PlaylistFragment playlistFragment;
 
     String currentFragment;
+
+    MusicService musicService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,8 +120,12 @@ public class MainActivity extends AppCompatActivity
 //        TrackRenderer audioRenderer = new MediaCodecAudioTrackRenderer(sampleSource, MediaCodecSelector.DEFAULT);
 //        exoPlayer.prepare(audioRenderer);
 //        exoPlayer.setPlayWhenReady(true);
+        Intent service = new Intent(this, MusicService.class);
+        //service.setPackage(getPackageName());
+        startService(service);
+        bindService(service, this, BIND_AUTO_CREATE);
 
-
+        localFileFragment.setOnPlaySong(this);
     }
 
     private void switchFragment(Fragment fragment, String tag) {
@@ -225,6 +237,9 @@ public class MainActivity extends AppCompatActivity
         Log.e(TAG, "onDestroy - line 119: Clean up tmp dir");
         File tmpFolder = getDir("tmp", Context.MODE_PRIVATE);
         Utils.deleteRecursive(tmpFolder);
+        localFileFragment.removeListener();
+        musicService = null;
+        unbindService(this);
     }
 
     @Override
@@ -240,5 +255,27 @@ public class MainActivity extends AppCompatActivity
         if (currentFragment != null)
             outState.putString("currentFragment", currentFragment);
         outState.putString("title", getTitle().toString());
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder service) {
+        Toast.makeText(MainActivity.this, "onServiceConnected", Toast.LENGTH_SHORT).show();
+        musicService = ((MusicService.LocalBinder) service).getService();
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+        musicService = null;
+    }
+
+    @Override
+    public void playASong(BaseFragment fragment, int position, String tag) {
+        Log.e(TAG, "playASong - line 268: " + tag + " " + position);
+        if (musicService != null) {
+            if (!tag.equals(musicService.getPlayListTag())) {
+                musicService.setNewSongList(fragment.getSongList(tag), tag);
+            }
+            musicService.playSong(position);
+        }
     }
 }

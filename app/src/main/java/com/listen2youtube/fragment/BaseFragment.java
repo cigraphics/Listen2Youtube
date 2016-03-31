@@ -20,6 +20,7 @@ import android.widget.Toast;
 
 import com.balysv.materialripple.MaterialRippleLayout;
 import com.listen2youtube.R;
+import com.listen2youtube.service.SongInfo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +40,12 @@ public abstract class BaseFragment extends Fragment {
 
     boolean isLandscape;
     String playingId;
+
+    public interface OnPlaySong {
+        void playASong(BaseFragment fragment, int position, String tag);
+    }
+
+    OnPlaySong onPlaySong;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -97,6 +104,10 @@ public abstract class BaseFragment extends Fragment {
         });
     }
 
+    public void setOnPlaySong(OnPlaySong onPlaySong) {
+        this.onPlaySong = onPlaySong;
+    }
+
     public void runOnUIThread(Runnable runnable){
         if (getActivity() != null)
             getActivity().runOnUiThread(runnable);
@@ -114,6 +125,8 @@ public abstract class BaseFragment extends Fragment {
     public abstract void onItemClick(View v);
 
     public abstract void onIcon1Click(View v);
+
+    public abstract List<SongInfo> getSongList(String tag);
 
     public abstract class BaseAdapter<T extends BaseDataItem> extends RecyclerView.Adapter<ViewHolder>{
         public static final int DEFAULT = 0;

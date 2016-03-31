@@ -22,6 +22,7 @@ import com.listen2youtube.R;
 import com.listen2youtube.Settings;
 import com.listen2youtube.Utils;
 import com.listen2youtube.YoutubeSearch;
+import com.listen2youtube.service.SongInfo;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -85,7 +86,8 @@ public class SearchOnlineFragment extends BaseFragment implements BaseFragment.O
 
     @Override
     public void onIcon1Click(View v) {
-
+        final DownloadManager downloadManager =
+                (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
         final SearchOnlineItem data = dataSet.getItem((int) v.getTag());
         showToast("Start download " + data.getTitle(0));
         Utils.getLinkAsync(data.id, new Utils.OnCompleteListener() {
@@ -96,8 +98,7 @@ public class SearchOnlineFragment extends BaseFragment implements BaseFragment.O
                     return;
                 }
                 Log.e(TAG, "onComplete - line 168: " + response);
-                DownloadManager downloadManager =
-                        (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
+
                 DownloadManager.Request request = new DownloadManager.Request(Uri.parse((String) response));
                 request.allowScanningByMediaScanner();
                 if (Settings.isOnlyWifi())
@@ -111,6 +112,11 @@ public class SearchOnlineFragment extends BaseFragment implements BaseFragment.O
                 downloadManager.enqueue(request);
             }
         });
+    }
+
+    @Override
+    public List<SongInfo> getSongList(String tag) {
+        return null;
     }
 
     @Override

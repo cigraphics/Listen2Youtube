@@ -42,11 +42,26 @@
                 <action android:name="android.intent.action.DOWNLOAD_NOTIFICATION_CLICKED"/>
             </intent-filter>
         </receiver>
-        <!-- ATTENTION: This was auto-generated to add Google Play services to your project for
-             App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->
-        <meta-data
-            android:name="com.google.android.gms.version"
-            android:value="@integer/google_play_services_version" />
+
+        <service
+            android:enabled="true"
+            android:name=".service.MusicService">
+            <intent-filter>
+                <action android:name="com.listen2youtube.service.MusicService" />
+                <action android:name="com.listen2youtube.action.TOGGLE_PLAYBACK" />
+                <action android:name="com.listen2youtube.action.PLAY" />
+                <action android:name="com.listen2youtube.action.PAUSE" />
+            </intent-filter>
+        </service>
+
+        <receiver android:name=".service.MusicIntentReceiver">
+            <intent-filter>
+                <action android:name="android.media.AUDIO_BECOMING_NOISY" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

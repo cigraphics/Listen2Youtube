@@ -1,6 +1,7 @@
 package com.listen2youtube.fragment;
 
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.DialogInterface;
 import android.database.ContentObserver;
 import android.database.Cursor;
@@ -26,7 +27,7 @@ import com.amulyakhare.textdrawable.util.ColorGenerator;
 import com.listen2youtube.PlayListHelper;
 import com.listen2youtube.Playlist;
 import com.listen2youtube.R;
-import com.listen2youtube.Settings;
+import com.listen2youtube.service.SongInfo;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,7 +64,14 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
 
     @Override
     public void onItemClick(View v) {
-
+        final int position = (int) v.getTag();
+        runOnUIThread(new Runnable() {
+            @Override
+            public void run() {
+                if (onPlaySong != null)
+                    onPlaySong.playASong(LocalFileFragment.this, position, TAG);
+            }
+        });
     }
 
     @Override
@@ -128,6 +136,16 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
     }
 
     @Override
+    public List<SongInfo> getSongList(String tag) {
+        List<SongInfo> result = new ArrayList<>();
+        for (LocalFileItem item :
+                dataSet.dataList) {
+            result.add(new SongInfo(item.title, item.getUri()));
+        }
+        return result;
+    }
+
+    @Override
     public void onChanged() {
         runOnUIThread(new Runnable() {
             @Override
@@ -137,9 +155,7 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
         });
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
+    public void removeListener() {
         if (dataSet != null)
             dataSet.freeObserver();
         cacheDrawable.clear();
@@ -186,6 +202,7 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
                     true,
                     observer);
         }
+
 
         /**
          * Loads music data. This method may take long, so be sure to call it asynchronously without
@@ -279,41 +296,9 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
             return mItemFiltered.get(pos);
         }
 
-        /**
-         * Returns a random Item. If there are no items available, returns null.
-         */
-        public LocalFileItem getNextItem() {
-            if (getCount() <= 0) return null;
-            if (playedPosition.size() >= getCount()) {
-                if (Settings.isLoop())
-                    resetPlayedList();
-                else
-                    return null;
-            }
-            if (Settings.isRandom()) {
-                int remainingItems = getCount() - playedPosition.size();
-                int r = mRandom.nextInt(remainingItems);
-                int n = -1;
-                for (int i = 0; i < getCount(); i++) {
-                    if (!playedPosition.contains(i) && ++n == r) {
-                        playedPosition.add(i);
-                        return getItem(i);
-                    }
-                }
-            } else {
-                if (playedPosition.size() == 0 || playedPosition.get(playedPosition.size() - 1) == getCount() - 1) {
-                    playedPosition.add(0);
-                    return getItem(0);
-                } else {
-                    int previous = playedPosition.get(playedPosition.size() - 1);
-                    playedPosition.add(previous + 1);
-                    return getItem(previous + 1);
-                }
-            }
-            return null;
-        }
-
         public void freeObserver() {
+
+            Log.e(TAG, "freeObserver - line 338: ------------------------------------------------");
             mContentResolver.unregisterContentObserver(observer);
         }
 
@@ -348,10 +333,20 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
 
         public LocalFileItem(long id, String artist, String title, String album, long duration) {
             this.id = id;
-            this.artist = artist;
             this.title = title;
             this.album = album;
+
+            if (artist == null || artist.length() == 0 || artist.contains("unknown"))
+                this.artist = "Y2b";
+            else
+                this.artist = artist;
+
             this.duration = duration;
+        }
+
+        public Uri getUri() {
+            return ContentUris.withAppendedId(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
         }
 
         @Override
