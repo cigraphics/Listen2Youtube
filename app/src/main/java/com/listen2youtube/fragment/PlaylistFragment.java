@@ -18,6 +18,7 @@ import com.amulyakhare.textdrawable.TextDrawable;
 import com.amulyakhare.textdrawable.util.ColorGenerator;
 import com.listen2youtube.PlayListHelper;
 import com.listen2youtube.R;
+import com.listen2youtube.service.SongInfo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +69,7 @@ public class PlaylistFragment extends LocalFileFragment {
                     Uri newPlaylistUri = PlayListHelper.createPlaylist(contentResolver,
                             playlistName);
                     PlaylistItem playlistItem = new PlaylistItem(
-                            PlayListHelper.parsePlaylistId(newPlaylistUri),
+                            PlayListHelper.parseLastInt(newPlaylistUri.toString()),
                             playlistName,
                             new ArrayList<LocalFileItem>()
                     );
@@ -90,11 +91,20 @@ public class PlaylistFragment extends LocalFileFragment {
             });
             builder.show();
         } else {
-            int position = (int) v.getTag();
+            final int position = (int) v.getTag();
             if (mDisplayingPlaylistId == -1) {
                 mDisplayingPlaylistId = position;
                 getActivity().setTitle("Playlist: " + dataSet.getItem(position).title);
                 onChanged();
+            } else {
+                runOnUIThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (onPlaySong != null) {
+                            onPlaySong.playASong(PlaylistFragment.this, position, TAG + "-" + mDisplayingPlaylistId);
+                        }
+                    }
+                });
             }
         }
     }
@@ -125,6 +135,17 @@ public class PlaylistFragment extends LocalFileFragment {
             dataSet.getItem(mDisplayingPlaylistId).localFileItems.remove(pos);
             onChanged();
         }
+    }
+
+    @Override
+    public List<SongInfo> getSongList(String tag) {
+        List<SongInfo> result = new ArrayList<>();
+        int position = (int) PlayListHelper.parseLastInt(tag);
+        for (LocalFileItem item :
+                dataSet.getItem(position).localFileItems) {
+            result.add(new SongInfo(item.title, getThumbnailText(item.artist), null, item.getUri()));
+        }
+        return result;
     }
 
     class PlaylistAdapter extends BaseAdapter<PlaylistItem> {

@@ -23,8 +23,10 @@ import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
@@ -33,11 +35,31 @@ import android.media.RemoteControlClient;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
+import android.support.v7.view.ContextThemeWrapper;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.amulyakhare.textdrawable.TextDrawable;
+import com.amulyakhare.textdrawable.util.ColorGenerator;
+import com.facebook.rebound.SimpleSpringListener;
+import com.facebook.rebound.Spring;
+import com.facebook.rebound.SpringConfig;
+import com.facebook.rebound.SpringSystem;
 import com.google.android.exoplayer.ExoPlaybackException;
 import com.google.android.exoplayer.ExoPlayer;
 import com.google.android.exoplayer.MediaCodecAudioTrackRenderer;
@@ -51,13 +73,20 @@ import com.google.android.exoplayer.extractor.mp4.Mp4Extractor;
 import com.google.android.exoplayer.extractor.webm.WebmExtractor;
 import com.google.android.exoplayer.upstream.DefaultAllocator;
 import com.google.android.exoplayer.upstream.DefaultUriDataSource;
+import com.listen2youtube.ProgressBar;
 import com.listen2youtube.R;
+import com.listen2youtube.Settings;
 import com.listen2youtube.activity.MainActivity;
 
 import java.util.List;
 
+import io.codetail.animation.SupportAnimator;
+import io.codetail.animation.ViewAnimationUtils;
 
-public class MusicService extends Service implements MusicFocusable, ExoPlayer.Listener {
+import static java.lang.Math.pow;
+
+
+public class MusicService extends Service implements MusicFocusable, ExoPlayer.Listener, View.OnTouchListener, View.OnClickListener {
 
     final static String TAG = "MusicService";
 
@@ -72,6 +101,7 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
 
     AudioFocusHelper mAudioFocusHelper = null;
     private long playerPosition = 0;
+
 
     // indicates the state our service:
     enum State {
@@ -102,7 +132,7 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
     AudioFocus mAudioFocus = AudioFocus.NoFocusNoDuck;
 
     // title of the song we are currently playing
-    String mSongTitle = "";
+    SongInfo playingSong;
 
     // whether the song we are playing is streaming from the network
     boolean mIsStreaming = false;
@@ -146,6 +176,7 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
 
     @Override
     public IBinder onBind(Intent arg0) {
+        createFloatingButton();
         return localBinder;
     }
 
@@ -166,6 +197,22 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
         processPlayRequest(position);
     }
 
+
+    Handler mLooper = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            if (mState == State.Playing) {
+                long position = exoPlayer.getCurrentPosition();
+                long duration = exoPlayer.getDuration();
+                if (duration <= 0)
+                    time.setProgress(0);
+                else
+                    time.setProgress((int) ((position * 100) / duration));
+            }
+            mLooper.sendEmptyMessageDelayed(0, 1000);
+            return false;
+        }
+    });
 
     /**
      * Makes sure the media player exists and has been reset. This will create the media player
@@ -200,6 +247,8 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
         mDummyAlbumArt = BitmapFactory.decodeResource(getResources(), R.drawable.music_art);
 
         mMediaButtonReceiverComponent = new ComponentName(this, MusicIntentReceiver.class);
+
+        mLooper.sendEmptyMessage(0);
     }
 
     /**
@@ -242,8 +291,8 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
             playNextSong(position);
         } else if (mState == State.Paused) {
             // If we're paused, just continue playback and restore the 'foreground service' state.
-            mState = State.Playing;
-            setUpAsForeground(mSongTitle + " (playing)");
+            setState(State.Playing);
+            setUpAsForeground(playingSong.title + " (playing)");
             configAndStartMediaPlayer();
         }
 
@@ -258,7 +307,7 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
 
         if (mState == State.Playing) {
             // Pause media player and cancel the 'foreground service' state.
-            mState = State.Paused;
+            setState(State.Paused);
 
             // Stop ExoPlayer and save position where it stopped
             exoPlayer.setSelectedTrack(0, -1);
@@ -281,7 +330,7 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
 
     void processStopRequest(boolean force) {
         if (mState == State.Playing || mState == State.Paused || force) {
-            mState = State.Stopped;
+            setState(State.Stopped);
 
             // let go of all resources...
             relaxResources(true);
@@ -307,16 +356,11 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
     void relaxResources(boolean releaseMediaPlayer) {
         // stop being a foreground service
 
-        if (releaseMediaPlayer)
-            stopForeground(true);
-        else {
-            stopForeground(false);
-            updateNotification(mSongTitle + " (paused)");
-        }
+        stopForeground(true);
 
         // stop and release the Media Player, if it's available
         if (releaseMediaPlayer && exoPlayer != null) {
-            exoPlayer.setPlayWhenReady(false);
+            exoPlayer.setSelectedTrack(0, -1);
             exoPlayer.stop();
             exoPlayer.release();
             exoPlayer = null;
@@ -346,10 +390,9 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
             //Loss focus, pause player
 
             mPauseReason = PauseReason.FocusLoss;
-            if (exoPlayer.getPlaybackState() == ExoPlayer.STATE_READY
-                    && exoPlayer.getPlayWhenReady()) {
-                exoPlayer.setPlayWhenReady(false);
-                exoPlayer.stop();
+            if (exoPlayer.getPlayWhenReady()) {
+                exoPlayer.setSelectedTrack(0, -1);
+                playerPosition = exoPlayer.getCurrentPosition();
             }
         } else {
             exoPlayer.seekTo(playerPosition);
@@ -371,7 +414,7 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
      * next.
      */
     void playNextSong(int position) {
-        mState = State.Stopped;
+        setState(State.Stopped);
         playerPosition = 0;
         relaxResources(false); // release everything except MediaPlayer
 
@@ -385,6 +428,19 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
             processStopRequest(true);
             return;
         }
+        playingSong = playingItem;
+        if (playingSong.bitmapThumbnail == null) {
+            TextDrawable drawable = TextDrawable.builder().buildRect(playingSong.textThumbnail,
+                    ColorGenerator.MATERIAL.getRandomColor());
+            ivThumbnail.setImageDrawable(drawable);
+        } else
+            ivThumbnail.setImageBitmap(playingSong.bitmapThumbnail);
+        tvTitle.setText(playingSong.title);
+        floatingButton.setImageResource(R.drawable.ic_pause);
+        fb.setImageResource(R.drawable.ic_pause);
+        time.setColor(ColorGenerator.MATERIAL.getRandomColor());
+        time.setProgress(0);
+
         mIsStreaming = playingItem.uri.getScheme().startsWith("http");
         createMediaPlayerIfNeeded();
         ExtractorSampleSource sampleSource = new ExtractorSampleSource(
@@ -399,7 +455,7 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
             MediaFormat format = extractor.getTrackFormat(0);
             String mime = format.getString(MediaFormat.KEY_MIME);
             Log.e(TAG, "playNextSong - line 434: mine " + mime);
-            if (mime != null && mime.contains("ffmpeg"))
+            if (mime != null && (mime.contains("ffmpeg")))
                 audioRenderer = new LibopusAudioTrackRenderer(sampleSource);
         } catch (Exception e) {
             e.printStackTrace();
@@ -409,10 +465,8 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
         exoPlayer.prepare(audioRenderer);
         exoPlayer.setPlayWhenReady(true);
 
-        mSongTitle = playingItem.titile;
-
-        mState = State.Preparing;
-        setUpAsForeground(mSongTitle + " (loading)");
+        setState(State.Preparing);
+        setUpAsForeground(playingSong.title + " (loading)");
 
         // Use the media button APIs (if available) to register ourselves for media button
         // events
@@ -444,7 +498,7 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
         // Update the remote controls
         mRemoteControlClientCompat.editMetadata(true)
                 .putString(MediaMetadataRetriever.METADATA_KEY_ALBUM, "Music")
-                .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, playingItem.titile)
+                .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, playingItem.title)
                         // TODO: fetch real item artwork
                 .putBitmap(
                         RemoteControlClientCompat.MetadataEditorCompat.METADATA_KEY_ARTWORK,
@@ -470,15 +524,15 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
         Log.e(TAG, "onPlayerStateChanged - line 512: " + playbackState);
         switch (playbackState) {
             case ExoPlayer.STATE_READY:
-                mState = State.Playing;
-                updateNotification(mSongTitle + " (playing)");
+                setState(State.Playing);
+                updateNotification(playingSong.title + " (playing)");
                 configAndStartMediaPlayer();
                 break;
             case ExoPlayer.STATE_ENDED:
                 if (mState == State.Playing)
                     processPlayRequest(-1);
                 else {
-                    mState = State.Stopped;
+                    setState(State.Stopped);
                 }
                 break;
         }
@@ -491,8 +545,8 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
 
     @Override
     public void onPlayerError(ExoPlaybackException error) {
-        Toast.makeText(this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
         Log.e(TAG, "onPlayerError - line 532: " + error);
+        Toast.makeText(this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
         if (mState == State.Playing)
             processPlayRequest(-1);
         else
@@ -503,6 +557,8 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
      * Updates the notification.
      */
     void updateNotification(String text) {
+        if (mNotificationBuilder == null)
+            return;
         PendingIntent pi = PendingIntent.getActivity(getApplicationContext(), 0,
                 new Intent(getApplicationContext(), MainActivity.class),
                 PendingIntent.FLAG_UPDATE_CURRENT);
@@ -546,16 +602,390 @@ public class MusicService extends Service implements MusicFocusable, ExoPlayer.L
     public void onLostAudioFocus(boolean canDuck) {
         mAudioFocus = canDuck ? AudioFocus.NoFocusCanDuck : AudioFocus.NoFocusNoDuck;
 
-        if (exoPlayer != null && exoPlayer.getPlayWhenReady())
+        if (mState == State.Playing)
             configAndStartMediaPlayer();
     }
 
 
     @Override
     public void onDestroy() {
-        mState = State.Stopped;
+        super.onDestroy();
+        setState(State.Stopped);
         relaxResources(true);
         giveUpAudioFocus();
+        windowManager.removeViewImmediate(floatingButton);
+        windowManager.removeViewImmediate(controlPanel);
     }
 
+    public void setState(State mState) {
+        this.mState = mState;
+        switch (mState) {
+            case Playing:
+                showFloatingButton();
+                break;
+        }
+    }
+
+    private static final int MIN_DISTANCE = 20;
+    FloatingActionButton floatingButton, fb;
+    ImageView ivThumbnail, ivRepeat, ivShuffle;
+    TextView tvTitle;
+    View controlPanel, rectangle;
+    View mainControl;
+    ProgressBar time;
+    WindowManager.LayoutParams pFloatButton, pControlPanel;
+    WindowManager windowManager;
+    int screenW, screenH, statusBarH;
+    float oneDpInPixel;
+    boolean visibleFloatButton;
+    boolean dragging = false, showControlPanel = false, showRectangle = true, showMainControl = false;
+    Spring spring;
+    SupportAnimator animator;
+
+
+    public void createFloatingButton() {
+        DisplayMetrics displaymetrics = Resources.getSystem().getDisplayMetrics();
+        screenW = displaymetrics.widthPixels;
+        screenH = displaymetrics.heightPixels;
+        oneDpInPixel = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, displaymetrics);
+        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        statusBarH = resourceId > 0 ? getResources().getDimensionPixelSize(resourceId) : 0;
+        visibleFloatButton = false;
+
+        SpringSystem springSystem = SpringSystem.create();
+        spring = springSystem.createSpring();
+        spring.addListener(new SimpleSpringListener() {
+
+            @Override
+            public void onSpringUpdate(Spring spring) {
+                // You can observe the updates in the spring
+                // state by asking its current value in onSpringUpdate.
+                float value = (float) spring.getCurrentValue();
+                if (floatingButton != null) {
+                    floatingButton.setScaleX(value);
+                    floatingButton.setScaleY(value);
+                }
+            }
+        });
+
+        spring.setSpringConfig(new SpringConfig(40, 6));
+
+
+        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        pFloatButton = new WindowManager.LayoutParams(
+                0,
+                0,
+                WindowManager.LayoutParams.TYPE_PHONE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                        | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                PixelFormat.TRANSLUCENT);
+        final Context contextThemeWrapper = new ContextThemeWrapper(this, R.style.AppTheme);
+        LayoutInflater inflater = LayoutInflater.from(contextThemeWrapper);
+        floatingButton = (FloatingActionButton) inflater.inflate(R.layout.floating_button, null);
+        pFloatButton.gravity = Gravity.LEFT | Gravity.TOP;
+        pFloatButton.x = screenW;
+        pFloatButton.y = screenH;
+        windowManager.addView(floatingButton, pFloatButton);
+
+        floatingButton.setOnTouchListener(this);
+
+        pControlPanel = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT, 0,
+                WindowManager.LayoutParams.TYPE_PHONE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                        | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                PixelFormat.TRANSLUCENT);
+        pControlPanel.gravity = Gravity.BOTTOM;
+
+        controlPanel = inflater.inflate(R.layout.controller, null);
+        rectangle = controlPanel.findViewById(R.id.rect);
+        mainControl = controlPanel.findViewById(R.id.revealLayout);
+        time = (ProgressBar) controlPanel.findViewById(R.id.v_time);
+        tvTitle = (TextView) controlPanel.findViewById(R.id.tvTitle);
+        ivThumbnail = (ImageView) controlPanel.findViewById(R.id.iv_thumbnail);
+        ivRepeat = (ImageView) controlPanel.findViewById(R.id.iv_repeat_icon);
+        ivShuffle = (ImageView) controlPanel.findViewById(R.id.iv_shuffle_icon);
+        fb = (FloatingActionButton) controlPanel.findViewById(R.id.fb_toggle_play);
+
+        controlPanel.findViewById(R.id.close).setOnClickListener(this);
+        controlPanel.findViewById(R.id.rp_repeat).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                repeatClick();
+            }
+        });
+        controlPanel.findViewById(R.id.rp_stop).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopClick();
+            }
+        });
+        controlPanel.findViewById(R.id.rp_toggle_play).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                togglePlayClick();
+            }
+        });
+        controlPanel.findViewById(R.id.rp_next).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                nextClick();
+            }
+        });
+        controlPanel.findViewById(R.id.rp_shuffle).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                shuffleClick();
+            }
+        });
+
+        boolean isRepeat = Settings.isRepeat();
+        if (isRepeat)
+            ivRepeat.setImageResource(R.drawable.ic_action_repeat_enabled);
+        else
+            ivRepeat.setImageResource(R.drawable.ic_action_playback_repeat_disabled);
+        boolean isShuffle = Settings.isShuffle();
+        if (isShuffle)
+            ivShuffle.setImageResource(R.drawable.ic_action_playback_schuffle_enabled);
+        else
+            ivShuffle.setImageResource(R.drawable.ic_action_playback_schuffle_disabled);
+
+        windowManager.addView(controlPanel, pControlPanel);
+    }
+
+    public void showFloatingButton() {
+        Log.e(TAG, "showFloatingButton - line 628: ");
+        if (visibleFloatButton)
+            return;
+        visibleFloatButton = true;
+        pFloatButton.width = WindowManager.LayoutParams.WRAP_CONTENT;
+        pFloatButton.height = WindowManager.LayoutParams.WRAP_CONTENT;
+        pFloatButton.x = screenW - (int) (oneDpInPixel * 75);
+        pFloatButton.y = screenH - (int) (oneDpInPixel * 75) - statusBarH;
+        windowManager.updateViewLayout(floatingButton, pFloatButton);
+        spring.setEndValue(1);
+    }
+
+    public void hideFloatingButton() {
+        visibleFloatButton = false;
+        pFloatButton.width = 0;
+        pFloatButton.height = 0;
+        pFloatButton.x = screenW;
+        pFloatButton.y = screenH;
+        windowManager.updateViewLayout(floatingButton, pFloatButton);
+    }
+
+    public void setVisibilityControlPanel(boolean visible) {
+        showControlPanel = visible;
+        pControlPanel.height = visible ? WindowManager.LayoutParams.WRAP_CONTENT : 1;
+        windowManager.updateViewLayout(controlPanel, pControlPanel);
+    }
+
+    public void setVisibilityRect(boolean visible) {
+        showRectangle = visible;
+        rectangle.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+    }
+
+    public void showMainControl(int x, int y) {
+        Log.e(TAG, "showMainControl - line 692: x " + x + " y " + y);
+        showMainControl = true;
+        int dx = Math.max(x, mainControl.getWidth() - x);
+        int dy = Math.max(y, mainControl.getHeight() - y);
+        float finalRadius = (float) Math.hypot(dx, dy);
+        animator = ViewAnimationUtils.createCircularReveal(mainControl, x, y, 0, finalRadius);
+        animator.setInterpolator(new AccelerateDecelerateInterpolator());
+        animator.setDuration(800);
+        animator.setStartDelay(0);
+        animator.addListener(new SupportAnimator.AnimatorListener() {
+            @Override
+            public void onAnimationStart() {
+                mainControl.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onAnimationEnd() {
+
+            }
+
+            @Override
+            public void onAnimationCancel() {
+
+            }
+
+            @Override
+            public void onAnimationRepeat() {
+
+            }
+        });
+        animator.start();
+    }
+
+    public void hideMainControl(final Runnable afterHide) {
+        showMainControl = false;
+        if (animator != null) {
+            animator = animator.reverse();
+            animator.removeAllListeners();
+            animator.addListener(new SupportAnimator.AnimatorListener() {
+                @Override
+                public void onAnimationStart() {
+
+                }
+
+                @Override
+                public void onAnimationEnd() {
+                    mainControl.setVisibility(View.INVISIBLE);
+                    if (afterHide != null)
+                        new Handler().postDelayed(afterHide, 500);
+                }
+
+                @Override
+                public void onAnimationCancel() {
+
+                }
+
+                @Override
+                public void onAnimationRepeat() {
+
+                }
+            });
+            animator.start();
+        } else {
+            mainControl.setVisibility(View.INVISIBLE);
+            if (afterHide != null)
+                new Handler().postDelayed(afterHide, 1000);
+        }
+    }
+
+
+    float previousX, previousY, previousRawX, previousRawY;
+    boolean hasMoved = false;
+
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                spring.setEndValue(0.8);
+                dragging = true;
+                hasMoved = false;
+                previousX = event.getX();
+                previousY = event.getY();
+                previousRawX = event.getRawX();
+                previousRawY = event.getRawY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                float distance = (float) Math.sqrt(pow(event.getRawX() - previousRawX, 2) + pow(event.getRawY() - previousRawY, 2));
+                //Log.e(TAG, "onTouch - line 756: " + distance);
+                if (hasMoved || distance >= MIN_DISTANCE) {
+                    hasMoved = true;
+                    pFloatButton.x = (int) (event.getRawX() - previousX);
+                    pFloatButton.y = (int) (event.getRawY() - previousY) - statusBarH;
+                    windowManager.updateViewLayout(floatingButton, pFloatButton);
+                    if (!showControlPanel)
+                        setVisibilityControlPanel(true);
+                    if (!showRectangle)
+                        setVisibilityRect(true);
+                    if (showMainControl)
+                        hideMainControl(null);
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                if (!hasMoved) {
+                    processTogglePlaybackRequest();
+                    if (mState != State.Stopped && mState != State.Paused) {
+                        floatingButton.setImageResource(R.drawable.ic_pause);
+                        fb.setImageResource(R.drawable.ic_pause);
+                    } else {
+                        floatingButton.setImageResource(R.drawable.ic_play_arrow);
+                        fb.setImageResource(R.drawable.ic_play_arrow);
+                    }
+                } else {
+                    int[] fbPosition = new int[2], panelPosition = new int[2];
+                    floatingButton.getLocationOnScreen(fbPosition);
+                    controlPanel.getLocationOnScreen(panelPosition);
+                    if (fbPosition[1] >= panelPosition[1]) {
+                        int x = fbPosition[0] + floatingButton.getWidth() / 3,
+                                y = fbPosition[1] - panelPosition[1] + floatingButton.getWidth() / 3;
+                        showMainControl(x, y);
+                    } else {
+                        hideMainControl(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (showControlPanel)
+                                    setVisibilityControlPanel(false);
+                            }
+                        });
+                    }
+                }
+                setVisibilityRect(false);
+                dragging = false;
+                spring.setEndValue(1);
+                break;
+        }
+
+        return true;
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.close:
+                setVisibilityRect(false);
+                hideMainControl(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (showControlPanel)
+                            setVisibilityControlPanel(false);
+                    }
+                });
+                break;
+        }
+    }
+
+    public void repeatClick() {
+        boolean isRepeat = !Settings.isRepeat();
+        Settings.setRepeat(isRepeat);
+        if (isRepeat)
+            ivRepeat.setImageResource(R.drawable.ic_action_repeat_enabled);
+        else
+            ivRepeat.setImageResource(R.drawable.ic_action_playback_repeat_disabled);
+    }
+
+    public void shuffleClick() {
+        boolean isShuffle = !Settings.isShuffle();
+        Settings.setShuffle(isShuffle);
+        if (isShuffle)
+            ivShuffle.setImageResource(R.drawable.ic_action_playback_schuffle_enabled);
+        else
+            ivShuffle.setImageResource(R.drawable.ic_action_playback_schuffle_disabled);
+    }
+
+    public void stopClick() {
+        hideFloatingButton();
+        setVisibilityRect(false);
+        hideMainControl(new Runnable() {
+            @Override
+            public void run() {
+                if (showControlPanel)
+                    setVisibilityControlPanel(false);
+                processStopRequest(true);
+            }
+        });
+    }
+
+    public void togglePlayClick() {
+        processTogglePlaybackRequest();
+        if (mState != State.Stopped && mState != State.Paused) {
+            floatingButton.setImageResource(R.drawable.ic_pause);
+            fb.setImageResource(R.drawable.ic_pause);
+        } else {
+            floatingButton.setImageResource(R.drawable.ic_play_arrow);
+            fb.setImageResource(R.drawable.ic_play_arrow);
+        }
+    }
+
+    public void nextClick() {
+        processPlayRequest(-1);
+    }
 }

@@ -66,12 +66,12 @@ public class PlayListHelper {
     }
 
     public static void insertSongToPlaylist(ContentResolver resolver, LocalFileFragment.LocalFileItem item, @NonNull Uri playlist) {
-        insertSongToPlaylist(resolver, item, parsePlaylistId(playlist));
+        insertSongToPlaylist(resolver, item, parseLastInt(playlist.toString()));
     }
 
-    public static long parsePlaylistId(Uri uri){
+    public static long parseLastInt(String str) {
         Pattern pattern = Pattern.compile("(\\d+)(?!.*\\d)");
-        Matcher matcher = pattern.matcher(uri.toString());
+        Matcher matcher = pattern.matcher(str);
         if (matcher.find())
             return Long.parseLong(matcher.group(1));
         return 0;

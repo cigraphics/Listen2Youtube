@@ -34,7 +34,8 @@ public class MusicIntentReceiver extends BroadcastReceiver {
             //Toast.makeText(context, "Headphones disconnected.", Toast.LENGTH_SHORT).show();
 
             // send an intent to our MusicService to telling it to pause the audio
-            Intent service = new Intent(MusicService.ACTION_PAUSE);
+            Intent service = new Intent(context, MusicService.class);
+            service.setAction(MusicService.ACTION_PAUSE);
             service.setPackage(context.getPackageName());
             context.startService(service);
 

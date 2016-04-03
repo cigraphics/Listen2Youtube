@@ -1,1 +1,1 @@
-include ':app', ':opus', ':library'
+include ':app', ':opus', ':library', ':circualreveal-release'

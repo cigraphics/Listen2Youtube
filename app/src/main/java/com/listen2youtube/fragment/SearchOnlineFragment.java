@@ -79,9 +79,34 @@ public class SearchOnlineFragment extends BaseFragment implements BaseFragment.O
         adapter = new SearchOnlineAdapter(dataSet);
     }
 
+    int lastPosition;
     @Override
     public void onItemClick(View v) {
-
+        final int position = lastPosition = (int) v.getTag();
+        final SearchOnlineItem item = dataSet.getItem(position);
+        Utils.getLinkAsync(item.id, new Utils.OnCompleteListener() {
+            @Override
+            public void onComplete(Object response) {
+                if (position == lastPosition && response != null) {
+                    final JSONObject tag = new JSONObject();
+                    try {
+                        tag.put("url", response.toString());
+                        tag.put("title", item.getTitle(0));
+                        tag.put("id", item.id);
+                        tag.put("channelTitle", item.channelTitle);
+                        runOnUIThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (onPlaySong != null)
+                                    onPlaySong.playASong(SearchOnlineFragment.this, 0, tag.toString());
+                            }
+                        });
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
     }
 
     @Override
@@ -116,6 +141,20 @@ public class SearchOnlineFragment extends BaseFragment implements BaseFragment.O
 
     @Override
     public List<SongInfo> getSongList(String tag) {
+
+        try {
+            List<SongInfo> result = new ArrayList<>();
+            JSONObject jsonObject = new JSONObject(tag);
+            result.add(new SongInfo(
+                    jsonObject.getString("title"),
+                    getThumbnailText(jsonObject.getString("channelTitle")),
+                    cacheBitmap.get(jsonObject.getString("id")),
+                    Uri.parse(jsonObject.getString("url"))
+            ));
+            return result;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 

@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Listen2Youtube.iml" filepath="$PROJECT_DIR$/Listen2Youtube.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/circualreveal-release/circualreveal-release.iml" filepath="$PROJECT_DIR$/circualreveal-release/circualreveal-release.iml" />
       <module fileurl="file://$PROJECT_DIR$/library/library.iml" filepath="$PROJECT_DIR$/library/library.iml" />
       <module fileurl="file://$PROJECT_DIR$/opus/opus.iml" filepath="$PROJECT_DIR$/opus/opus.iml" />
     </modules>

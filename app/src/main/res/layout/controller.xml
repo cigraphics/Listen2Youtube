@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="100dp">
+
+    <View
+        android:id="@+id/rect"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:background="@drawable/rectangle" />
+
+    <io.codetail.widget.RevealLinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="100dp">
+
+        <LinearLayout
+            android:id="@+id/revealLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#5e5e5e"
+            android:visibility="visible">
+
+            <ImageView
+                android:id="@+id/iv_thumbnail"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:background="#565656" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <com.listen2youtube.ProgressBar
+                            android:id="@+id/v_time"
+                            android:layout_width="match_parent"
+                            android:layout_height="3dp" />
+
+                        <TextView
+                            android:id="@+id/tvTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="marquee"
+                            android:layout_marginLeft="6dp"
+                            android:maxLines="1"
+                            android:text=" Katy Perry - Dark Horse (Official) ft. Juicy J "
+                            android:textColor="@android:color/white" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/close"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:src="@drawable/ic_hide" />
+                </LinearLayout>
+
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+                    <com.balysv.materialripple.MaterialRippleLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:id="@+id/rp_repeat">
+
+                        <ImageView
+                            android:id="@+id/iv_repeat_icon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="center"
+                            android:maxHeight="65dp"
+                            android:maxWidth="65dp"
+                            android:src="@drawable/ic_action_repeat_enabled" />
+                    </com.balysv.materialripple.MaterialRippleLayout>
+
+                    <com.balysv.materialripple.MaterialRippleLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:id="@+id/rp_stop">
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="center"
+                            android:maxHeight="65dp"
+                            android:maxWidth="65dp"
+                            android:src="@drawable/ic_stop" />
+                    </com.balysv.materialripple.MaterialRippleLayout>
+
+                    <com.balysv.materialripple.MaterialRippleLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:id="@+id/rp_toggle_play">
+
+                        <android.support.design.widget.FloatingActionButton
+                            android:id="@+id/fb_toggle_play"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="center"
+                            android:elevation="9dp"
+                            android:maxHeight="65dp"
+                            android:maxWidth="65dp"
+                            android:src="@drawable/ic_play_arrow" />
+                    </com.balysv.materialripple.MaterialRippleLayout>
+
+                    <com.balysv.materialripple.MaterialRippleLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:id="@+id/rp_next">
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="center"
+                            android:maxHeight="65dp"
+                            android:maxWidth="65dp"
+                            android:src="@drawable/ic_action_playback_next" />
+                    </com.balysv.materialripple.MaterialRippleLayout>
+
+                    <com.balysv.materialripple.MaterialRippleLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:id="@+id/rp_shuffle">
+
+                        <ImageView
+                            android:id="@+id/iv_shuffle_icon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="center"
+                            android:maxHeight="65dp"
+                            android:maxWidth="65dp"
+                            android:src="@drawable/ic_action_playback_schuffle_disabled" />
+                    </com.balysv.materialripple.MaterialRippleLayout>
+
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+
+    </io.codetail.widget.RevealLinearLayout>
+</FrameLayout>

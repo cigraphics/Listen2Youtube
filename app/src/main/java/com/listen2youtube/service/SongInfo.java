@@ -1,5 +1,6 @@
 package com.listen2youtube.service;
 
+import android.graphics.Bitmap;
 import android.net.Uri;
 
 /**
@@ -7,11 +8,15 @@ import android.net.Uri;
  * Email: khang.neon.1997@gmail.com
  */
 public class SongInfo {
-    String titile;
+    String title;
+    String textThumbnail;
+    Bitmap bitmapThumbnail;
     Uri uri;
 
-    public SongInfo(String titile, Uri uri) {
-        this.titile = titile;
+    public SongInfo(String title, String textThumbnail, Bitmap bitmapThumbnail, Uri uri) {
+        this.title = title;
+        this.textThumbnail = textThumbnail;
+        this.bitmapThumbnail = bitmapThumbnail;
         this.uri = uri;
     }
 }

@@ -68,8 +68,12 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
         runOnUIThread(new Runnable() {
             @Override
             public void run() {
-                if (onPlaySong != null)
-                    onPlaySong.playASong(LocalFileFragment.this, position, TAG);
+                if (onPlaySong != null) {
+                    if (dataSet.haveFiltered)
+                        onPlaySong.playASong(LocalFileFragment.this, dataSet.getItemFiltered(position), TAG);
+                    else
+                        onPlaySong.playASong(LocalFileFragment.this, position, TAG);
+                }
             }
         });
     }
@@ -140,7 +144,7 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
         List<SongInfo> result = new ArrayList<>();
         for (LocalFileItem item :
                 dataSet.dataList) {
-            result.add(new SongInfo(item.title, item.getUri()));
+            result.add(new SongInfo(item.title, getThumbnailText(item.artist), null, item.getUri()));
         }
         return result;
     }
@@ -365,13 +369,8 @@ public class LocalFileFragment extends BaseFragment implements BaseFragment.OnDa
 
         @Override
         public void setThumbnailIcon(AppCompatImageView imageView, int position) {
-            String text = artist.substring(0, 1);
-            final int p;
-            if ((p = artist.indexOf(" ")) != -1) {
-                text += artist.substring(p + 1, p + 2);
-            }
-            if (text.length() < 2)
-                text = text.toUpperCase() + artist.substring(1, 2);
+            String text = getThumbnailText(artist);
+
             if (cacheDrawable.containsKey(text))
                 imageView.setImageDrawable(cacheDrawable.get(text));
             else {

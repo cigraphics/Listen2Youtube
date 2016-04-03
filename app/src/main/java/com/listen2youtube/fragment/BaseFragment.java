@@ -128,6 +128,17 @@ public abstract class BaseFragment extends Fragment {
 
     public abstract List<SongInfo> getSongList(String tag);
 
+    public String getThumbnailText(String input) {
+        String text = input.substring(0, 1);
+        final int p;
+        if ((p = input.indexOf(" ")) != -1) {
+            text += input.substring(p + 1, p + 2);
+        }
+        if (text.length() < 2)
+            text = text.toUpperCase() + input.substring(1, 2);
+        return text;
+    }
+
     public abstract class BaseAdapter<T extends BaseDataItem> extends RecyclerView.Adapter<ViewHolder>{
         public static final int DEFAULT = 0;
 

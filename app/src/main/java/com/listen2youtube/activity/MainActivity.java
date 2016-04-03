@@ -30,6 +30,7 @@ import com.listen2youtube.service.MusicService;
 
 import java.io.File;
 
+
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SearchView.OnQueryTextListener, ServiceConnection, BaseFragment.OnPlaySong {
     private static final String TAG = "MainActivity";
@@ -40,9 +41,6 @@ public class MainActivity extends AppCompatActivity
     private Toolbar toolbar;
     private MenuItem menuSearch;
 
-
-    private static final int BUFFER_SEGMENT_SIZE = 64 * 1024;
-    private static final int BUFFER_SEGMENT_COUNT = 160;
 
     SearchOnlineFragment searchOnlineFragment;
     LocalFileFragment localFileFragment;
@@ -74,7 +72,7 @@ public class MainActivity extends AppCompatActivity
             navigationView.setNavigationItemSelectedListener(this);
         }
 
-        if (savedInstanceState != null){
+        if (savedInstanceState != null) {
             searchOnlineFragment = (SearchOnlineFragment) getSupportFragmentManager().getFragment(savedInstanceState, SEARCH_ONLINE);
             localFileFragment = (LocalFileFragment) getSupportFragmentManager().getFragment(savedInstanceState, LOCAL_FILE);
             playlistFragment = (PlaylistFragment) getSupportFragmentManager().getFragment(savedInstanceState, LOCAL_PLAYLIST);
@@ -96,36 +94,15 @@ public class MainActivity extends AppCompatActivity
             switchFragment(localFileFragment, LOCAL_FILE);
         else switchFragment(playlistFragment, LOCAL_PLAYLIST);
 
-//        Fragment fragment = getSupportFragmentManager().findFragmentByTag(SEARCH_ONLINE);
-//        if (fragment != null)
-//            searchOnlineFragment = (SearchOnlineFragment) fragment;
-//        else
-//            searchOnlineFragment = new SearchOnlineFragment();
-//
-//        fragment = getSupportFragmentManager().
-//        if (fragment != null)
-//            localFileFragment = (LocalFileFragment) fragment;
-//        else
-//            localFileFragment = new LocalFileFragment();
 
-        ////Test
-//        ExoPlayer exoPlayer = ExoPlayer.Factory.newInstance(1);
-//        File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-//        file = new File(file, "hello.mp3");
-//        ExtractorSampleSource sampleSource = new ExtractorSampleSource(
-//                Uri.parse("https://murmuring-brushlands-18762.herokuapp.com/?id=09R8_2nJtjg"),
-//                new DefaultUriDataSource(this, "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:45.0) Gecko/20100101 Firefox/45.0"),
-//                new DefaultAllocator(BUFFER_SEGMENT_SIZE), BUFFER_SEGMENT_SIZE * BUFFER_SEGMENT_COUNT,
-//                new WebmExtractor());
-//        TrackRenderer audioRenderer = new MediaCodecAudioTrackRenderer(sampleSource, MediaCodecSelector.DEFAULT);
-//        exoPlayer.prepare(audioRenderer);
-//        exoPlayer.setPlayWhenReady(true);
         Intent service = new Intent(this, MusicService.class);
         //service.setPackage(getPackageName());
         startService(service);
         bindService(service, this, BIND_AUTO_CREATE);
 
         localFileFragment.setOnPlaySong(this);
+        searchOnlineFragment.setOnPlaySong(this);
+        playlistFragment.setOnPlaySong(this);
     }
 
     private void switchFragment(Fragment fragment, String tag) {
@@ -170,6 +147,8 @@ public class MainActivity extends AppCompatActivity
                     break;
                 toolbar.setTitle("All local file");
                 switchFragment(localFileFragment, LOCAL_FILE);
+                if (localFileFragment.dataSet != null)
+                    localFileFragment.dataSet.doFilter(null);
                 break;
             case R.id.playlist:
                 if (currentFragment.equals(LOCAL_PLAYLIST))
@@ -201,7 +180,7 @@ public class MainActivity extends AppCompatActivity
         if (currentFragment.equals(LOCAL_FILE)) {
             localFileFragment.dataSet.doFilter(query);
             localFileFragment.onChanged();
-        } else if (currentFragment.equals(SEARCH_ONLINE)){
+        } else if (currentFragment.equals(SEARCH_ONLINE)) {
             searchOnlineFragment.dataSet.searchQueryAsync(query, true);
         }
         return true;
@@ -219,7 +198,9 @@ public class MainActivity extends AppCompatActivity
         } else if (searchView != null && !searchView.isIconified()) {
             searchView.clearFocus();
             menuSearch.collapseActionView();
-        } else if (currentFragment.equals(SEARCH_ONLINE) && !toolbar.getTitle().equals("All local file")) {
+        } else if (currentFragment.equals(SEARCH_ONLINE) && !toolbar.getTitle().equals("Search online")) {
+            toolbar.setTitle("Search online");
+        } else if (currentFragment.equals(LOCAL_FILE) && !toolbar.getTitle().equals("All local file")) {
             toolbar.setTitle("All local file");
             localFileFragment.dataSet.doFilter(null);
             localFileFragment.onChanged();
@@ -254,7 +235,7 @@ public class MainActivity extends AppCompatActivity
             getSupportFragmentManager().putFragment(outState, LOCAL_PLAYLIST, playlistFragment);
         if (currentFragment != null)
             outState.putString("currentFragment", currentFragment);
-        outState.putString("title", getTitle().toString());
+        outState.putString("title", toolbar.getTitle().toString());
     }
 
     @Override

@@ -20,8 +20,8 @@ public class SongList {
     public SongInfo nextSong() {
         if (songInfoList.size() == 0)
             return null;
-        boolean isLoop = Settings.isLoop(),
-                isRandom = Settings.isRandom();
+        boolean isLoop = Settings.isRepeat(),
+                isRandom = Settings.isShuffle();
         Random mRandom = new Random();
         if (!isLoop && !isRandom && lastPlayedPosition >= songInfoList.size() - 1)
             return null;
