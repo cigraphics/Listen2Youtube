@@ -1,7 +1,16 @@
 package com.listen2youtube.activity;
 
+import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatTextView;
 import android.util.Log;
@@ -29,58 +38,86 @@ public class FlashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.flash_activity);
         status = (AppCompatTextView) findViewById(R.id.flash_status);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(1000);
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            status.setVisibility(View.VISIBLE);
-                        }
-                    });
-                    if (Utils.isOnline(FlashActivity.this)) {
-                        while (true) {
+        status.setVisibility(View.VISIBLE);
+        status.setText("Status: Checking permission");
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (ContextCompat.checkSelfPermission(FlashActivity.this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                ActivityCompat.requestPermissions(FlashActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        99);
+            else if (!Settings.canDrawOverlays(this)) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + getPackageName()));
+                startActivityForResult(intent, 99);
+            } else
+                doWakeUpServer();
+        } else
+            doWakeUpServer();
+    }
 
-                            URL url = new URL(Constants.HOST_SERVER);
-                            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                            connection.connect();
-                            Log.e(TAG, "run - line 47: " + connection.getResponseCode());
-                            if (connection.getResponseCode() / 100 == 2) {
-                                connection.disconnect();
-                                Thread.sleep(1000);
-                                startMainActivity();
-                                break;
-                            }
-                        }
-                    } else {
+    void doWakeUpServer() {
+        if (Utils.isOnline(this)) {
+            status.setText("Status: starting server from sleeping mode...");
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    URL url;
+                    try {
+                        url = new URL(Constants.HOST_SERVER);
+                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                        connection.connect();
+                        Log.e(TAG, "run - line 47: " + connection.getResponseCode());
+                        Thread.sleep(1000);
+                        startMainActivity();
+                    } catch (InterruptedException | IOException e) {
+                        e.printStackTrace();
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                status.setText("Status: you are in offline mode.");
+                                status.setText("Error: " + e.getMessage());
                             }
                         });
-                        Thread.sleep(1000);
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e1) {
+                            e1.printStackTrace();
+                        }
                         startMainActivity();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            status.setText("Status: unknown error, check your connection!");
-                        }
-                    });
+                }
+            }).start();
+        } else {
+            status.setText("Status: you are in offline mode.");
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
                     startMainActivity();
                 }
-            }
-        }).start();
+            }, 1000);
+        }
     }
 
     void startMainActivity() {
         Intent mainActivity = new Intent(FlashActivity.this, MainActivity.class);
         startActivity(mainActivity);
         finish();
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 99) {
+            if (ContextCompat.checkSelfPermission(FlashActivity.this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                ActivityCompat.requestPermissions(FlashActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        99);
+            else if (!Settings.canDrawOverlays(this)) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + getPackageName()));
+                startActivityForResult(intent, 99);
+            } else
+                doWakeUpServer();
+        }
     }
 }
